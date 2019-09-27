@@ -1,67 +1,110 @@
-FROM buildpack-deps:stretch
+FROM debian:buster-slim
 
-RUN groupadd --gid 1000 node \
-  && useradd --uid 1000 --gid node --shell /bin/bash --create-home node
+LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
-ENV NODE_VERSION 10.16.3
+ENV NGINX_VERSION   1.16.1
+ENV NJS_VERSION     0.3.5
+ENV PKG_RELEASE     1~buster
 
-RUN ARCH= && dpkgArch="$(dpkg --print-architecture)" \
-  && case "${dpkgArch##*-}" in \
-    amd64) ARCH='x64';; \
-    ppc64el) ARCH='ppc64le';; \
-    s390x) ARCH='s390x';; \
-    arm64) ARCH='arm64';; \
-    armhf) ARCH='armv7l';; \
-    i386) ARCH='x86';; \
-    *) echo "unsupported architecture"; exit 1 ;; \
-  esac \
-  # gpg keys listed at https://github.com/nodejs/node#release-keys
-  && set -ex \
-  && for key in \
-    94AE36675C464D64BAFA68DD7434390BDBE9B9C5 \
-    FD3A5288F042B6850C66B31F09FE44734EB7990E \
-    71DCFD284A79C3B38668286BC97EC7A07EDE3FC1 \
-    DD8F2338BAE7501E3DD5AC78C273792F7D83545D \
-    C4F0DFFF4E8C1A8236409D08E73BC641CC11F4C8 \
-    B9AE9905FFD7803F25714661B63B535A4C206CA9 \
-    77984A986EBC2AA786BC0F66B01FBB92821C587A \
-    8FCCA13FEF1D0C2E91008E09770F7A9A5AE15600 \
-    4ED778F539E3634C779C87C6D7062848A1AB005C \
-    A48C2BEE680E841632CD4E44F07496B3EB3C1762 \
-    B9E2F5981AA6E0CD28160D9FF13993A75599653C \
-  ; do \
-    gpg --batch --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys "$key" || \
-    gpg --batch --keyserver hkp://ipv4.pool.sks-keyservers.net --recv-keys "$key" || \
-    gpg --batch --keyserver hkp://pgp.mit.edu:80 --recv-keys "$key" ; \
-  done \
-  && curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.xz" \
-  && curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
-  && gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc \
-  && grep " node-v$NODE_VERSION-linux-$ARCH.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
-  && tar -xJf "node-v$NODE_VERSION-linux-$ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
-  && rm "node-v$NODE_VERSION-linux-$ARCH.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
-  && ln -s /usr/local/bin/node /usr/local/bin/nodejs
+RUN set -x \
+# create nginx user/group first, to be consistent throughout docker variants
+    && addgroup --system --gid 101 nginx \
+    && adduser --system --disabled-login --ingroup nginx --no-create-home --home /nonexistent --gecos "nginx user" --shell /bin/false --uid 101 nginx \
+    && apt-get update \
+    && apt-get install --no-install-recommends --no-install-suggests -y gnupg1 ca-certificates \
+    && \
+    NGINX_GPGKEY=573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62; \
+    found=''; \
+    for server in \
+        ha.pool.sks-keyservers.net \
+        hkp://keyserver.ubuntu.com:80 \
+        hkp://p80.pool.sks-keyservers.net:80 \
+        pgp.mit.edu \
+    ; do \
+        echo "Fetching GPG key $NGINX_GPGKEY from $server"; \
+        apt-key adv --keyserver "$server" --keyserver-options timeout=10 --recv-keys "$NGINX_GPGKEY" && found=yes && break; \
+    done; \
+    test -z "$found" && echo >&2 "error: failed to fetch GPG key $NGINX_GPGKEY" && exit 1; \
+    apt-get remove --purge --auto-remove -y gnupg1 && rm -rf /var/lib/apt/lists/* \
+    && dpkgArch="$(dpkg --print-architecture)" \
+    && nginxPackages=" \
+        nginx=${NGINX_VERSION}-${PKG_RELEASE} \
+        nginx-module-xslt=${NGINX_VERSION}-${PKG_RELEASE} \
+        nginx-module-geoip=${NGINX_VERSION}-${PKG_RELEASE} \
+        nginx-module-image-filter=${NGINX_VERSION}-${PKG_RELEASE} \
+        nginx-module-njs=${NGINX_VERSION}.${NJS_VERSION}-${PKG_RELEASE} \
+    " \
+    && case "$dpkgArch" in \
+        amd64|i386) \
+# arches officialy built by upstream
+            echo "deb https://nginx.org/packages/debian/ buster nginx" >> /etc/apt/sources.list.d/nginx.list \
+            && apt-get update \
+            ;; \
+        *) \
+# we're on an architecture upstream doesn't officially build for
+# let's build binaries from the published source packages
+            echo "deb-src https://nginx.org/packages/debian/ buster nginx" >> /etc/apt/sources.list.d/nginx.list \
+            \
+# new directory for storing sources and .deb files
+            && tempDir="$(mktemp -d)" \
+            && chmod 777 "$tempDir" \
+# (777 to ensure APT's "_apt" user can access it too)
+            \
+# save list of currently-installed packages so build dependencies can be cleanly removed later
+            && savedAptMark="$(apt-mark showmanual)" \
+            \
+# build .deb files from upstream's source packages (which are verified by apt-get)
+            && apt-get update \
+            && apt-get build-dep -y $nginxPackages \
+            && ( \
+                cd "$tempDir" \
+                && DEB_BUILD_OPTIONS="nocheck parallel=$(nproc)" \
+                    apt-get source --compile $nginxPackages \
+            ) \
+# we don't remove APT lists here because they get re-downloaded and removed later
+            \
+# reset apt-mark's "manual" list so that "purge --auto-remove" will remove all build dependencies
+# (which is done after we install the built packages so we don't have to redownload any overlapping dependencies)
+            && apt-mark showmanual | xargs apt-mark auto > /dev/null \
+            && { [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; } \
+            \
+# create a temporary local APT repo to install from (so that dependency resolution can be handled by APT, as it should be)
+            && ls -lAFh "$tempDir" \
+            && ( cd "$tempDir" && dpkg-scanpackages . > Packages ) \
+            && grep '^Package: ' "$tempDir/Packages" \
+            && echo "deb [ trusted=yes ] file://$tempDir ./" > /etc/apt/sources.list.d/temp.list \
+# work around the following APT issue by using "Acquire::GzipIndexes=false" (overriding "/etc/apt/apt.conf.d/docker-gzip-indexes")
+#   Could not open file /var/lib/apt/lists/partial/_tmp_tmp.ODWljpQfkE_._Packages - open (13: Permission denied)
+#   ...
+#   E: Failed to fetch store:/var/lib/apt/lists/partial/_tmp_tmp.ODWljpQfkE_._Packages  Could not open file /var/lib/apt/lists/partial/_tmp_tmp.ODWljpQfkE_._Packages - open (13: Permission denied)
+            && apt-get -o Acquire::GzipIndexes=false update \
+            ;; \
+    esac \
+    \
+    && apt-get install --no-install-recommends --no-install-suggests -y \
+                        $nginxPackages \
+                        gettext-base \
+    && apt-get remove --purge --auto-remove -y ca-certificates && rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/nginx.list \
+    \
+# if we have leftovers from building, let's purge them (including extra, unnecessary build deps)
+    && if [ -n "$tempDir" ]; then \
+        apt-get purge -y --auto-remove \
+        && rm -rf "$tempDir" /etc/apt/sources.list.d/temp.list; \
+    fi
 
-ENV YARN_VERSION 1.17.3
+# forward request and error logs to docker log collector
+RUN ln -sf /dev/stdout /var/log/nginx/access.log \
+    && ln -sf /dev/stderr /var/log/nginx/error.log
 
-RUN set -ex \
-  && for key in \
-    6A010C5166006599AA17F08146C2130DFD2497F5 \
-  ; do \
-    gpg --batch --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys "$key" || \
-    gpg --batch --keyserver hkp://ipv4.pool.sks-keyservers.net --recv-keys "$key" || \
-    gpg --batch --keyserver hkp://pgp.mit.edu:80 --recv-keys "$key" ; \
-  done \
-  && curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz" \
-  && curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz.asc" \
-  && gpg --batch --verify yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
-  && mkdir -p /opt \
-  && tar -xzf yarn-v$YARN_VERSION.tar.gz -C /opt/ \
-  && ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
-  && ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
-  && rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz
+EXPOSE 80
 
-COPY docker-entrypoint.sh /usr/local/bin/
-ENTRYPOINT ["docker-entrypoint.sh"]
+STOPSIGNAL SIGTERM
 
-CMD [ "node" ]
+CMD ["nginx", "-g", "daemon off;"]
+
+RUN service nginx start
+
+
+
+
+
