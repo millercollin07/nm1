@@ -4,6 +4,9 @@ FROM node:10
 WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install
+RUN npm run-script build
+RUN npm install -g serve
+EXPOSE 5000
 
 COPY . .
-CMD ["npm", "start-prod"]
+CMD ["serve", "-s", "build"]
