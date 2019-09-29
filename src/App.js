@@ -8,7 +8,7 @@ function App() {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <h1>
-          NM DevOps Challenge
+          DevOps Challenge
         </h1>
         <p>
 	  Ci pipline uses git hub which triggers travis ci and dockerhub
