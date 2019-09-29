@@ -3,18 +3,10 @@ language: node_js
 services:
   - docker
 
-before_install:
-  - sudo apt-get install curl -y
+install:
   - docker build -t millercollin07/nm1 .
   - docker run -d -p 5000:5000 millercollin07/nm1 
+script:
   - docker ps -a
-  - curl 127.0.0.1:5000
 
-deploy:
-  provider: pages
-  skip_cleanup: true
-  github_token: $GITHUB_TOKEN 1492733debec2cd40e157a9912800f38cb13f785
-  keep_history: true
-  on:
-    branch: master
 
