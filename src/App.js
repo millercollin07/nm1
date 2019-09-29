@@ -8,7 +8,7 @@ function App() {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
-          DevOps Challenge
+          NM DevOps Challenge
         </p>
         <a
           className="App-link"
