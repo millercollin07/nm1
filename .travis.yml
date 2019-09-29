@@ -10,4 +10,8 @@ script:
   - docker ps -a
 
 deploy:
-  - docker push millercollin07/nm1
+  provider: script
+  script: bash docker_push
+  on:
+    branch: master
+
