@@ -1,2 +1,2 @@
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-docker push millercollin07/nm1
+docker push millercollin07/nm1:latest
