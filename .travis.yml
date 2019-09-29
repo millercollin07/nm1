@@ -9,4 +9,5 @@ install:
 script:
   - docker ps -a
 
-
+deploy:
+  docker push millercollin07/nm1
