@@ -4,7 +4,7 @@ services:
   - docker
 
 before_install:
-  - docker build -t millercollin07/nm1
+  - docker build -t millercollin07/nm1 .
   - docker run -d -p 80:5000 millercollin07/nm1 
   - docker ps -a
   - curl 127.0.0.1
