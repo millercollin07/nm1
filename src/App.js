@@ -11,7 +11,7 @@ function App() {
           NM DevOps Challenge
         </h1>
         <p>
-	  Ci pipline uses git hub, travis and dockerhub
+	  Ci pipline uses git hub which triggers travis ci and dockerhub
 	  </p>
       </header>
     </div>
