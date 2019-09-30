@@ -10,10 +10,11 @@ function App() {
         <h1>
           DevOps Challenge
         </h1>
-        <p>Ci pipline uses git hub which triggers travis ci which triggers</p>
-	  <p>the upload of a docker image to Docker Hub upon successful</p>
-	  <p>image build and testing</p>
-	 <p>pulling of new docker images to the production server is automated by Watchtower</p> 
+	  <h3> CI PipeLine</h3>
+          <p> - GitHub</p>
+	  <p> - Travis CI - triggered when push is made to master branch of git hub</p>
+	  <p> - Docker Hub - automatically uploaded to when Travis builds and successfully tests new git hub code in new docker image.</p>
+	  <p> - Watchtower - sits on production server, watches for and downloads/launches new docker images</p> 
       </header>
     </div>
   );
