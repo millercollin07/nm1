@@ -11,7 +11,8 @@ function App() {
           DevOps Challenge
         </h1>
         <p>
-	  Ci pipline uses git hub which triggers travis ci and dockerhub
+	  Ci pipline uses git hub which triggers travis ci which triggers</p>
+	  <p>uploads docker image to Docker Hub upon successful image build and testing
 	  </p>
       </header>
     </div>
