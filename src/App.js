@@ -13,7 +13,7 @@ function App() {
         <p>Ci pipline uses git hub which triggers travis ci which triggers</p>
 	  <p>the upload of a docker image to Docker Hub upon successful</p>
 	  <p>image build and testing</p>
-	 <p>test2</p> 
+	 <p>pulling of new docker images to the production server is automated by Watchtower</p> 
       </header>
     </div>
   );
