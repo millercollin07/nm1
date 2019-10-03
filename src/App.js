@@ -7,14 +7,12 @@ function App() {
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        <h1>
-          DevOps Challenge
-        </h1>
+        <h1> DevOps Challenge </h1>
 	  <h3> CI PipeLine</h3>
-          <p> - GitHub 
-	  <p> - Travis CI
-	  <p> - Docker Hub
-	  <p> - Watchtower 
+          <p> - GitHub </p>
+	  <p> - Travis CI </p>
+	  <p> - Docker Hub </p>
+	  <p> - Watchtower </p>
       </header>
     </div>
   );
