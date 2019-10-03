@@ -13,7 +13,7 @@ function App() {
 	  <h3> CI PipeLine</h3>
           <p> - GitHub</p>
 	  <p> - Travis CI - triggered when push is made to master branch of git hub</p>
-	  <p> - Docker Hub - automatically uploaded to when Travis builds and successfully tests new git hub code in new docker image.</p>
+	  <p> - Docker Hub - receives automatic upload of image when Travis successfully builds and tests new git hub code in new docker image.</p>
 	  <p> - Watchtower - sits on production server, watches for and downloads/launches new docker images</p> 
       </header>
     </div>
