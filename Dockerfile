@@ -12,4 +12,4 @@ EXPOSE 5000
 
 CMD ["serve", "-s", "build"]
 
-HEALTHCHECK curl localhost:5000
+#HEALTHCHECK curl localhost:5000
