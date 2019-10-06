@@ -25,7 +25,7 @@ From the build directory, you can run:
 ### `docker build -t millercollin07/nm1 .`
 ### `sudo docker run -d -p 5000:5000 -t millercollin07/nm1:latest`
 
-you will then be able to see the project running at localhost:5000 as it would run in production.
+you will then be able to see the project running at [http://localhost:5000](http://localhost:5000) as it would run in production.
 To pull the current image from docker hub run:
 
 ### `docker pull docker pull millercollin07/nm1`
