@@ -8,17 +8,13 @@ function App() {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <h1> DevOps Challenge </h1>
-	  <h3> CI PipeLine</h3>
-       </header>
-       <body>
-
-          <p> - GitHub      </p>
-	  <p> - Travis CI   </p>
-	  <p> - Docker Hub  </p>
-	  <p> - Watchtower  </p>
-      </body>
+	  <h2> CI PipeLine</h2>
+          <h3> - GitHub      </h3>
+	  <h3> - Travis CI   </h3>
+	  <h3> - Docker Hub  </h3>
+	  <h3> - Watchtower  </h3>
+      </header>
     </div>
   );
 }
-
 export default App;
