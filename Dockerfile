@@ -10,6 +10,6 @@ RUN npm run-script build
 RUN npm install -g serve
 EXPOSE 5000
 
-CMD ["serve", "-s", "build"]
+CMD ["node", "server.js"]
 
 #HEALTHCHECK curl localhost:5000
