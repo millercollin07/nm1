@@ -20,7 +20,7 @@ See the section about [running tests](https://facebook.github.io/create-react-ap
 
 ## Building/Running a Docker Image
 
-From the build directory, you can run:
+From the application directory containing Dockerfile, you can run:
 
 ### `docker build -t millercollin07/nm1 .`
 ### `sudo docker run -d -p 5000:5000 -t millercollin07/nm1:latest`
